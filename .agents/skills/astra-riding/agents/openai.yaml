@@ -1,0 +1,4 @@
+interface:
+  display_name: "Astra Riding"
+  short_description: "Astra 流の判断で作業を最後まで進める"
+  default_prompt: "Use $astra-riding to carry this task to completion the way GPT-6 Astra would: act on the request, ask only outcome-changing questions, state assumptions, verify proportionally, and report outcome first."
