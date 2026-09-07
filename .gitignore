@@ -2,3 +2,4 @@
 .codex/*.bak-astra
 .astra-notes.md
 *.bak-astra
+__pycache__/
