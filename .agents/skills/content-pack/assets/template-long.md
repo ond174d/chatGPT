@@ -1,6 +1,6 @@
 <!--
 台本テンプレート(長尺)。納品時にこのコメントは消す。
-尺の確認: python3 .agents/skills/youtube-script/scripts/script_stats.py この台本.md --target 600
+尺の確認: python3 .agents/skills/content-pack/scripts/script_stats.py この台本.md --target 600
 -->
 
 # 動画タイトル案

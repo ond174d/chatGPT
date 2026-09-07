@@ -5,7 +5,7 @@
 | スキル | 中身 |
 | --- | --- |
 | [astra-riding](.agents/skills/astra-riding/) | 判断様式そのもの。どう判断して進めるかを規定する |
-| [youtube-script](.agents/skills/youtube-script/) | YouTube 台本を完成原稿として書く。進め方は astra-riding に従う |
+| [content-pack](.agents/skills/content-pack/) | 動画台本と、概要欄・SNS 投稿・キャプションまで一式を完成品として書く。進め方は astra-riding に従う |
 
 ---
 
@@ -101,56 +101,100 @@ Astra だけが持つ判断規則を Sol / Terra の組み込み指示の上に�
 
 ---
 
-## youtube-script
+## content-pack
 
-YouTube 動画の台本を、構成案ではなく**読み上げられる完成原稿**として書くスキル。
-進め方は astra-riding の判断ループをそのまま使う。台本作成で効くのは次の 4 点。
+動画台本と、それに付随する公開用テキスト一式を**完成品**として書くスキル。
+台本(長尺・ショート・対談)、YouTube のタイトル・概要欄・チャプター・固定コメント、
+X / Instagram / TikTok の投稿文とキャプション、サムネイル文言。
+進め方は astra-riding の判断ループをそのまま使う。
+
+### 2 つのモード
+
+書き始める前に既存のプロファイルを探し、見つかればそちらに従う。
+
+| モード | 条件 | 文体 | 構成 |
+| --- | --- | --- | --- |
+| ハウス | `00_システム/00_UserProfile/` や `コンテキスト.md` がある | プロファイルの規定。文体注入スキルがあれば委ねる | プロファイルの構成テンプレート |
+| 汎用 | 見つからない | 同梱の一般則 | 同梱の一般型 |
+
+ハウスモードでは、このスキルが持つのは**型と検証だけ**で、文体はプロファイル側に残す。
+既存の責務分離(文体はスキル、型はワークフロー)を壊さないための設計。
+
+```bash
+python3 .agents/skills/content-pack/scripts/load_house_style.py
+```
+
+一人称、二人称、基本トーン、構成テンプレート、禁止用語、文体注入スキルの実行コマンドを検出する。
+
+### この分野で効く astra-riding の規則
 
 - 「台本を作って」を構成案の依頼と解釈しない。実際に話す文まで書き切る。
 - 尺と視聴者だけを先に聞き、残りは前提を置いて進む。答えを待つ間も手を止めない。
-- 台本に書く数字・日付・価格・統計は、確認できたものだけを断定形で書く。確認できないものは `[要確認]` を付けて収録前に潰す。それらしい数字を作らない。
-- 納品前に尺と事実と読みやすさを機械と目の両方で確認する。
+- 数字・日付・価格・統計は、確認できたものだけを断定形で書く。確認できないものは `[要確認]` を付けて公開前に潰す。
+- 確証がないときに語尾だけ言い切りに変えない。強めるのではなく主張を落とす。
 
 ### 構成
 
 ```
-.agents/skills/youtube-script/
-├── SKILL.md                      # 最初に確定する 5 項目、6 ステップの手順
+.agents/skills/content-pack/
+├── SKILL.md                      # ハウススタイル確認 → 5 項目確定 → 7 ステップ
 ├── agents/openai.yaml
 ├── references/
-│   ├── structure.md              # 尺別の配分、フックの型、離脱を防ぐ設計、CTA、ショート
+│   ├── house-style.md            # 2 モード、責務分離、5 ブロック構成への対応
+│   ├── structure.md              # 尺別の配分、フックの型、離脱を防ぐ設計、ショート
 │   ├── formats.md                # 解説/レビュー/チュートリアル/ニュース/検証/対談/vlog/案件
 │   ├── delivery.md               # 話し言葉への直し方、間、画面指示の記法
+│   ├── derivatives.md            # タイトル/概要欄/チャプター/固定コメント/X/IG/TikTok/サムネ
 │   └── checklist.md              # 納品前チェック
 ├── assets/
 │   ├── template-long.md          # 長尺テンプレート
 │   ├── template-short.md         # ショート/リールテンプレート
-│   └── template-interview.md     # 対談の進行台本テンプレート
+│   ├── template-interview.md     # 対談の進行台本テンプレート
+│   ├── template-derivatives.md   # 公開用テキスト一式テンプレート
+│   └── limits.json               # 媒体別の文字数上限(出典付き)
 └── scripts/
+    ├── load_house_style.py       # 既存プロファイルの検出
     ├── script_stats.py           # 尺の見積り、章ごとの配分、長文と未確認箇所の検出
-    └── test_script_stats.py      # script_stats.py の回帰テスト
+    ├── copy_check.py             # 文字数上限、禁止語、弱い語尾、ハッシュタグ数
+    └── test_content_pack.py      # 回帰テスト
 ```
 
 ### 使い方
 
-Claude Code なら `/youtube-script`、Codex なら `$youtube-script`。「台本を作って」でも作動する。
+Claude Code なら `/content-pack`、Codex なら `$content-pack`。「台本を作って」「概要欄を書いて」でも作動する。
 
 ```bash
 # 尺の見積りと構成チェック(目標 10 分)
-python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target 600
+python3 .agents/skills/content-pack/scripts/script_stats.py 台本.md --target 600
 
 # ショート(フックは 2 秒以内で判定)
-python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target 45 --short
+python3 .agents/skills/content-pack/scripts/script_stats.py 台本.md --target 45 --short
 
 # 話者に合わせて話速を変える(既定は日本語 340 字/分、英語 150 語/分)
-python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target 600 --cpm 300
+python3 .agents/skills/content-pack/scripts/script_stats.py 台本.md --target 600 --cpm 300
+
+# 公開用テキストの点検(`## platform: x` の見出しで一括、または個別に指定)
+python3 .agents/skills/content-pack/scripts/copy_check.py 派生物.md --platform auto
+python3 .agents/skills/content-pack/scripts/copy_check.py 投稿.txt --platform x
+
+# 回帰テスト
+python3 .agents/skills/content-pack/scripts/test_content_pack.py
 ```
 
-角括弧の画面指示、HTML コメント、コードブロック、フロントマターは尺の計算から除外される。
-引用行と表の中の文字は読み上げる可能性があるので算入する。対談台本は `--speakers 進行役,ゲスト` で
-行頭の話者名を除ける。目標尺との差、フックの長さ、60 字相当を超える一文(英語は語数で換算)、
-`[要確認]` の残り、見出しの欠落を検出し、問題があれば終了コード 1 を返す。
+`script_stats.py` は角括弧の画面指示、HTML コメント、コードブロック、フロントマターを尺から除外し、
+引用行と表の中の文字は算入する。対談台本は `--speakers 進行役,ゲスト` で行頭の話者名を除ける。
+
+`copy_check.py` は媒体別の文字数上限、「続きを読む」前に見える範囲、ハッシュタグ数、
+ハウススタイルの禁止語、言い切り型に対する弱い語尾を点検する。X は日本語を 2 単位として数える。
+
+### 別のリポジトリで使う
+
+このスキルは特定のリポジトリに依存しない。Second Brain 形式の保管庫で使う場合は、
+その `.agent/skills/` にコピーし、保管庫のルートで実行する。
 
 ```bash
-python3 .agents/skills/youtube-script/scripts/test_script_stats.py   # 回帰テスト
+cp -r .agents/skills/content-pack /path/to/vault/.agent/skills/
+cd /path/to/vault && python3 .agent/skills/content-pack/scripts/load_house_style.py
 ```
+
+プロファイルが自動検出され、文体・構成テンプレート・禁止用語がそこから読み込まれる。

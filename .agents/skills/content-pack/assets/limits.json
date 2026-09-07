@@ -1,0 +1,19 @@
+{
+  "_note": "2026年9月時点の公開情報にもとづく上限。プラットフォームの仕様は変わるので、投稿前に実画面で確認すること。visible は「続きを読む」前に見える目安。",
+  "_sources": [
+    "https://www.limitora.com/blog/youtube-character-limits-2026",
+    "https://typecount.com/blog/instagram-caption-character-limit",
+    "https://typecount.com/blog/twitter-character-limit"
+  ],
+  "platforms": {
+    "youtube-title": {"label": "YouTube タイトル", "limit": 100, "visible": 60, "weighted": false},
+    "youtube-description": {"label": "YouTube 概要欄", "limit": 5000, "visible": 157, "weighted": false},
+    "youtube-tags": {"label": "YouTube タグ(全体)", "limit": 500, "weighted": false},
+    "youtube-comment": {"label": "YouTube コメント", "limit": 10000, "weighted": false},
+    "x": {"label": "X 投稿(無料)", "limit": 280, "weighted": true},
+    "x-premium": {"label": "X 投稿(Premium)", "limit": 4000, "weighted": true},
+    "instagram": {"label": "Instagram キャプション", "limit": 2200, "visible": 125, "weighted": false, "max_hashtags": 30},
+    "tiktok": {"label": "TikTok キャプション", "limit": 2200, "weighted": false},
+    "thumbnail": {"label": "サムネイル文言(目安)", "limit": 13, "weighted": false}
+  }
+}

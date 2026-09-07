@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""script_stats.py の回帰テスト。標準ライブラリだけで動く。
+"""content-pack のスクリプトの回帰テスト。標準ライブラリだけで動く。
 
     python3 test_script_stats.py
 
@@ -14,9 +14,12 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TARGET = os.path.join(HERE, "script_stats.py")
+COPY_CHECK = os.path.join(HERE, "copy_check.py")
 
 sys.path.insert(0, HERE)
 import script_stats as stats  # noqa: E402
+import copy_check as copy  # noqa: E402
+import load_house_style as house  # noqa: E402
 
 FAILURES: list[str] = []
 
@@ -121,11 +124,103 @@ def main() -> int:
     result = run("## 章 [要確認]\n\n本文です。\n")
     check_true("見出し内の [要確認]", "未確認の箇所" in result.stdout, result.stdout)
 
+    test_copy_check()
+    test_house_style()
+
     if FAILURES:
         print(f"\n{len(FAILURES)} 件失敗: {', '.join(FAILURES)}")
         return 1
     print("\nすべて通過")
     return 0
+
+
+def write_temp(body: str, suffix: str = ".md") -> str:
+    with tempfile.NamedTemporaryFile("w", suffix=suffix, encoding="utf-8", delete=False) as fh:
+        fh.write(body)
+        return fh.name
+
+
+def run_copy(body: str, *args: str) -> subprocess.CompletedProcess:
+    path = write_temp(body)
+    try:
+        return subprocess.run([sys.executable, COPY_CHECK, path, *args], capture_output=True, text=True)
+    finally:
+        os.unlink(path)
+
+
+def test_copy_check() -> None:
+    print("copy_check: X の重み付け(日本語は 2 単位)")
+    check("かな 10 文字 = 20 単位", copy.weighted_length("あ" * 10), 20)
+    check("英字 10 文字 = 10 単位", copy.weighted_length("abcdefghij"), 10)
+    check("混在", copy.weighted_length("あa" * 5), 15)
+    check("全角記号も 2 単位", copy.weighted_length("。、ー々"), 8)
+
+    print("copy_check: 上限判定")
+    over = run_copy("あ" * 141, "--platform", "x", "--style-root", tempfile.gettempdir())
+    check_true("X 141 字は超過", "超過" in over.stdout, over.stdout)
+    check("超過は終了コード 1", over.returncode, 1)
+    under = run_copy("あ" * 100, "--platform", "x", "--style-root", tempfile.gettempdir())
+    check("範囲内は終了コード 0", under.returncode, 0)
+
+    print("copy_check: 見出しでプラットフォームを切り替える")
+    body = "## platform: youtube-title\n\nタイトル\n\n## platform: x\n\n投稿本文です。\n"
+    result = run_copy(body, "--platform", "auto", "--style-root", tempfile.gettempdir())
+    check_true("2 媒体を点検", "YouTube タイトル" in result.stdout and "X 投稿" in result.stdout, result.stdout)
+    check("両方範囲内なら 0", result.returncode, 0)
+
+    print("copy_check: ハッシュタグ数")
+    tags = " ".join(f"#タグ{i}" for i in range(31))
+    result = run_copy(tags, "--platform", "instagram", "--style-root", tempfile.gettempdir())
+    check_true("31 個で警告", "ハッシュタグが 31 個" in result.stdout, result.stdout)
+
+    print("copy_check: 空・未知・不明")
+    check("空の本文", run_copy("", "--platform", "x", "--style-root", tempfile.gettempdir()).returncode, 1)
+    result = run_copy("本文\n", "--platform", "auto", "--style-root", tempfile.gettempdir())
+    check("見出しなしで auto は 2", result.returncode, 2)
+    missing = subprocess.run([sys.executable, COPY_CHECK, "/nonexistent.txt", "--platform", "x"], capture_output=True, text=True)
+    check("存在しないファイル", missing.returncode, 2)
+
+
+def test_house_style() -> None:
+    print("load_house_style: 検出と汎用フォールバック")
+    root = tempfile.mkdtemp()
+    profile = os.path.join(root, "00_システム", "00_UserProfile")
+    os.makedirs(profile)
+    with open(os.path.join(profile, "03_style.md"), "w", encoding="utf-8") as fh:
+        fh.write(
+            "## 1. Voice & Tone\n"
+            "*   **基本トーン**: 「〜だ」の言い切り型を基本とする。\n"
+            "*   **一人称**: 私\n"
+            "*   **二人称**: あなた\n"
+            "*   **Forbidden Terms (使用禁止用語)**\n"
+            "    *   API, Python, JSON\n"
+        )
+    with open(os.path.join(root, "コンテキスト.md"), "w", encoding="utf-8") as fh:
+        fh.write("- **コンテンツ構成テンプレ**: Hook / Prove / Teach / Entertain / Action の5ブロック\n")
+
+    found = house.collect(house.find_root(root))
+    check("モード", found["mode"], "house")
+    check("一人称", found.get("first_person"), "私")
+    check_true("言い切り型を拾う", "言い切り" in found.get("tone", ""), found.get("tone"))
+    check_true("構成テンプレを拾う", "Hook" in found.get("structure_template", ""), found.get("structure_template"))
+    for term in ("API", "Python", "JSON"):
+        check_true(f"禁止語 {term}", term in found["forbidden_terms"], found["forbidden_terms"])
+
+    nested = os.path.join(root, "a", "b")
+    os.makedirs(nested)
+    check("下位ディレクトリからも見つける", house.find_root(nested), root)
+    check("マーカーが無ければ None", house.find_root(tempfile.mkdtemp()), None)
+
+    print("copy_check: ハウススタイルの禁止語と弱い語尾")
+    result = run_copy("Python で自動化できると思います。", "--platform", "x", "--style-root", root)
+    check_true("禁止語を検出", "「Python」" in result.stdout, result.stdout)
+    check_true("弱い語尾を検出", "弱い語尾" in result.stdout, result.stdout)
+    clean = run_copy("業務のどこで使うかを決めるのが先だ。", "--platform", "x", "--style-root", root)
+    check("問題なしなら 0", clean.returncode, 0)
+    off = run_copy(
+        "自動化できると思います。", "--platform", "x", "--style-root", root, "--no-hedge-check"
+    )
+    check_true("--no-hedge-check で無効化", "弱い語尾" not in off.stdout, off.stdout)
 
 
 if __name__ == "__main__":

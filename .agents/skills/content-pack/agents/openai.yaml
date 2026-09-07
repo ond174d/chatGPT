@@ -1,0 +1,4 @@
+interface:
+  display_name: "Content Pack"
+  short_description: "台本と公開用テキスト一式を作る"
+  default_prompt: "Use $content-pack to produce the script and the publishing copy for this video: check the house style first, then write a ready-to-read script plus title, description, chapters and social posts."

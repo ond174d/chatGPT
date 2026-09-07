@@ -3,10 +3,18 @@
 astra-riding の「確かめる」を台本作成に具体化したもの。渡す前に上から順に通す。
 機械的に測れるものはスクリプトに任せ、人が読まないと分からないものだけを目で見る。
 
+## 0. ハウススタイル
+
+- `load_house_style.py` を実行したか。ハウスモードなら、その規定に従って書いたか。
+- 文体注入スキルがあるなら実行し、出力された規則に従ったか。
+- プロファイルの構成テンプレートを使ったか。5 ブロックなら Prove と Entertain が入っているか。
+- 禁止用語を、対象読者に照らして 1 つずつ判断したか(一律置換していないか)。
+
 ## 1. 機械で測る
 
 ```bash
-python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target 600
+python3 .agents/skills/content-pack/scripts/script_stats.py 台本.md --target 600
+python3 .agents/skills/content-pack/scripts/copy_check.py 派生物.md --platform auto
 ```
 
 スクリプトが**警告として出す**もの(見つかれば終了コード 1)。
@@ -22,7 +30,14 @@ python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target
 - 章ごとの配分が構成の意図どおりか。特定の章だけ膨らんでいないか。
 - 割合の列を見て、山を作るべき章が薄くなっていないか。
 
-回帰テストは `python3 .agents/skills/youtube-script/scripts/test_script_stats.py` で走る。
+`copy_check.py` が警告するもの。
+
+- 文字数の上限超過(X は日本語を 2 単位として数える)。
+- ハッシュタグの数。
+- ハウススタイルの禁止・NG ワード。
+- 言い切り型の文体に対する弱い語尾。
+
+回帰テストは `python3 .agents/skills/content-pack/scripts/test_content_pack.py` で走る。
 
 ## 2. 依頼との突き合わせ
 
@@ -61,10 +76,21 @@ python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target
 - テロップが読み上げ文の丸写しになっていないか。
 - ショートなら、音声なしで意味が通るか。
 
-## 7. 納品物
+## 7. 公開用テキスト
+
+- 概要欄の冒頭 157 字だけで、動画の中身が分かるか。
+- タイトルの前半 30 字に、中身が分かる語が入っているか。
+- タイトルとサムネ文言が同じ文になっていないか。
+- チャプターの先頭が `0:00` か。収録後の実時間に差し替えたか。
+- 台本で触れた数字と引用の出典が、概要欄に残っているか。
+- SNS 投稿が、台本の要約の貼り付けになっていないか。投稿単体で完結しているか。
+- 案件なら PR 表記が入っているか。
+
+## 8. 納品物
 
 - 完成台本
 - 尺の見積り(全体と章ごと)
+- 公開用テキスト一式
 - 置いた前提の一覧
 - 未確認事項の一覧と、確認方法
 - フックの不採用案(2 案)

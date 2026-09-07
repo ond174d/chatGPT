@@ -1,6 +1,6 @@
 <!--
 台本テンプレート(ショート/リール)。納品時にこのコメントは消す。
-尺の確認: python3 .agents/skills/youtube-script/scripts/script_stats.py この台本.md --target 45 --short
+尺の確認: python3 .agents/skills/content-pack/scripts/script_stats.py この台本.md --target 45 --short
 -->
 
 # タイトル案

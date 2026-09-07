@@ -3,7 +3,7 @@
 このリポジトリは、エージェントの判断様式そのものを配布するスキル置き場。
 
 - 作業は `.agents/skills/astra-riding/SKILL.md` の判断ループに従って進める。
-- 動画台本の作成・改稿は `.agents/skills/youtube-script/SKILL.md` を使う。進め方は astra-riding に従う。
+- 動画台本と公開用テキスト(概要欄・SNS 投稿・キャプション)の作成・改稿は `.agents/skills/content-pack/SKILL.md` を使う。書き始める前に `scripts/load_house_style.py` でハウススタイルを確認する。進め方は astra-riding に従う。
 - スキルを編集したら `python3 .agents/skills/astra-riding/scripts/audit_instructions.py .` を実行し、原則と衝突する記述が増えていないか確認する。
 - `.claude/skills/*` は `.agents/skills/*` へのシンボリックリンク。実体は `.agents` 側だけを編集する。
 - 下のオーバーレイは `scripts/install.py` が生成する管理ブロック。直接編集せず、`assets/overlay.md` を直して再実行する。
