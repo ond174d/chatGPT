@@ -1,0 +1,4 @@
+interface:
+  display_name: "YouTube Script"
+  short_description: "読み上げられる完成台本を書く"
+  default_prompt: "Use $youtube-script to write a complete, ready-to-read script for a video about this topic, with a hook, retention structure, on-screen cues, and a duration estimate."

@@ -1,3 +1,14 @@
+# skills
+
+エージェント用スキルの置き場。2 つ入っている。
+
+| スキル | 中身 |
+| --- | --- |
+| [astra-riding](.agents/skills/astra-riding/) | 判断様式そのもの。どう判断して進めるかを規定する |
+| [youtube-script](.agents/skills/youtube-script/) | YouTube 台本を完成原稿として書く。進め方は astra-riding に従う |
+
+---
+
 # astra-riding
 
 エージェントの**判断様式そのもの**を配布するスキル。何を作るかではなく、どう判断して進めるかを規定する。
@@ -87,3 +98,52 @@ codex --profile astra-sol      # または astra-terra / astra-sol-full / astra-
 
 Astra だけが持つ判断規則を Sol / Terra の組み込み指示の上に重ね、hooks で再注入し、
 引き渡し前に `$astra-verifier` で主張と成果物を突き合わせる。詳細は `references/astra-on-sol-terra.md`。
+
+---
+
+# youtube-script
+
+YouTube 動画の台本を、構成案ではなく**読み上げられる完成原稿**として書くスキル。
+進め方は astra-riding の判断ループをそのまま使う。台本作成で効くのは次の 4 点。
+
+- 「台本を作って」を構成案の依頼と解釈しない。実際に話す文まで書き切る。
+- 尺と視聴者だけを先に聞き、残りは前提を置いて進む。答えを待つ間も手を止めない。
+- 台本に書く数字・日付・価格・統計は、確認できたものだけを断定形で書く。確認できないものは `[要確認]` を付けて収録前に潰す。それらしい数字を作らない。
+- 納品前に尺と事実と読みやすさを機械と目の両方で確認する。
+
+## 構成
+
+```
+.agents/skills/youtube-script/
+├── SKILL.md                      # 最初に確定する 5 項目、6 ステップの手順
+├── agents/openai.yaml
+├── references/
+│   ├── structure.md              # 尺別の配分、フックの型、離脱を防ぐ設計、CTA、ショート
+│   ├── formats.md                # 解説/レビュー/チュートリアル/ニュース/検証/対談/vlog/案件
+│   ├── delivery.md               # 話し言葉への直し方、間、画面指示の記法
+│   └── checklist.md              # 納品前チェック
+├── assets/
+│   ├── template-long.md          # 長尺テンプレート
+│   ├── template-short.md         # ショート/リールテンプレート
+│   └── template-interview.md     # 対談の進行台本テンプレート
+└── scripts/script_stats.py       # 尺の見積り、章ごとの配分、長文と未確認箇所の検出
+```
+
+## 使い方
+
+Claude Code なら `/youtube-script`、Codex なら `$youtube-script`。「台本を作って」でも作動する。
+
+```bash
+# 尺の見積りと構成チェック(目標 10 分)
+python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target 600
+
+# ショート(フックは 2 秒以内で判定)
+python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target 45 --short
+
+# 話者に合わせて話速を変える(既定は日本語 340 字/分、英語 150 語/分)
+python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target 600 --cpm 300
+```
+
+角括弧の画面指示、コメント、見出しは尺の計算から除外される。
+目標尺との差、フックの長さ、60 字を超える一文、`[要確認]` の残りを検出し、
+問題があれば終了コード 1 を返す。
