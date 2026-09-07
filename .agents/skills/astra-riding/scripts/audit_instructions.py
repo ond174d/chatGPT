@@ -48,12 +48,26 @@ def iter_targets(root: str):
                 yield os.path.join(dirpath, name)
 
 
+MANAGED_BEGIN = "astra-riding:overlay:start"
+MANAGED_END = "astra-riding:overlay:end"
+
+
 def audit_file(path: str) -> list[tuple[int, str, str]]:
+    """管理ブロック(install_codex.py が埋め込むオーバーレイ)は監査対象から外す。"""
     hits: list[tuple[int, str, str]] = []
+    in_managed = False
     try:
         with open(path, encoding="utf-8", errors="replace") as fh:
             for lineno, line in enumerate(fh, 1):
                 stripped = line.rstrip("\n")
+                if MANAGED_BEGIN in stripped:
+                    in_managed = True
+                    continue
+                if MANAGED_END in stripped:
+                    in_managed = False
+                    continue
+                if in_managed:
+                    continue
                 for kind, pattern in PATTERNS.items():
                     if pattern.search(stripped):
                         hits.append((lineno, kind, stripped.strip()))

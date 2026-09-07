@@ -18,6 +18,19 @@
 SKILL.md の原則(行動優先、完遂、許可の基準、質問と前提の扱い、検証の比例、文体)は
 主にこの文書の内容を手順として言い換えたもの。
 
+## Sol / Terra との比較に使った資料
+
+- Codex 上の GPT-5.6(Sol)システムプロンプト(公開転載): https://github.com/asgeirtj/system_prompts_leaks/blob/main/OpenAI/Codex/gpt-5.6.md
+- GPT-5.6 Sol / Terra / Luna の発表: https://openai.com/index/gpt-5-6/
+- GPT-5.6 Terra モデルページ: https://developers.openai.com/api/docs/models/gpt-5.6-terra
+- Sol の実運用での不満(指示の読み飛ばし、回り道): https://github.com/openai/codex/issues/36538
+- Astra と Sol の挙動差(質問、舵取り、正直さ、トークン効率): https://codersera.com/blog/gpt-6-astra-vs-gpt-5-6-sol-2026/ 、 https://ustechautomations.com/resources/blog/gpt-6-astra-vs-5-sol-for-codex-token-efficiency-2026
+- Codex の設定階層(model_instructions_file > AGENTS.md > ユーザー): https://github.com/Austin1serb/agents-md/blob/main/change-codex-system-prompt.md
+- developer_instructions が Codex App で付かない報告: https://github.com/openai/codex/issues/11004
+- Codex hooks の形式とイベント: https://github.com/shanraisshan/codex-cli-best-practice/blob/main/best-practice/codex-hooks.md 、 https://developers.openai.com/codex/hooks
+- Codex カスタムサブエージェントの TOML 形式: https://developers.openai.com/codex/subagents 、 https://github.com/proflead/codex-agents-library
+- Sol の ultra モードと effort: https://codex.danielvaughan.com/2026/06/26/gpt-5-6-sol-terra-luna-preview-codex-cli-model-tiers-pricing-ultra-mode-configuration/
+
 ## 二次情報
 
 - Codex CLI での Astra 設定: https://codex.danielvaughan.com/2026/09/03/gpt-6-astra-codex-cli-configuration-context-notes-safety/

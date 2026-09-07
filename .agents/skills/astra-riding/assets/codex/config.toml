@@ -1,0 +1,41 @@
+# astra-riding: Codex profiles that make GPT-5.6 Sol / Terra behave like GPT-6 Astra.
+# Installed by scripts/install_codex.py, which fills in developer_instructions from
+# assets/codex/astra-overlay.md. Activate with `codex --profile astra-sol` or
+# `CODEX_PROFILE=astra-terra`.
+
+[features]
+codex_hooks = true
+
+[agents]
+max_threads = 4
+
+# Sol: strongest non-Astra tier. high is the working default; xhigh for design
+# decisions and hard debugging; ultra only when a task has failed at xhigh.
+[profiles.astra-sol]
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+developer_instructions = """
+{{ASTRA_OVERLAY}}
+"""
+
+# Terra: cheaper tier with less reasoning headroom. Start one effort level higher
+# than you would on Sol so the behavior rules get enough thinking budget.
+[profiles.astra-terra]
+model = "gpt-5.6-terra"
+model_reasoning_effort = "xhigh"
+developer_instructions = """
+{{ASTRA_OVERLAY}}
+"""
+
+# Same profiles, but replacing Codex's built-in instructions entirely with
+# astra-instructions.md. Use only if the overlay is not enough; you lose any
+# built-in guidance that a newer Codex release adds.
+[profiles.astra-sol-full]
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+model_instructions_file = "{{ASTRA_INSTRUCTIONS_PATH}}"
+
+[profiles.astra-terra-full]
+model = "gpt-5.6-terra"
+model_reasoning_effort = "xhigh"
+model_instructions_file = "{{ASTRA_INSTRUCTIONS_PATH}}"

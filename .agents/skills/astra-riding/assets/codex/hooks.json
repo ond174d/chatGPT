@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .codex/hooks/astra_hook.py",
+            "statusMessage": "astra-riding: loading behavior overlay",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .codex/hooks/astra_hook.py",
+            "statusMessage": "astra-riding: restoring objective after compaction",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

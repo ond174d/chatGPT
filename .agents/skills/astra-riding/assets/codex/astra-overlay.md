@@ -1,13 +1,3 @@
-# AGENTS.md
-
-このリポジトリは Codex / Claude Code 向けのスキル置き場。
-
-- 実装・修正・調査などの作業は `.agents/skills/astra-riding/SKILL.md` の判断ループに従って進める。
-- スキルを編集したら `python3 .agents/skills/astra-riding/scripts/audit_instructions.py .` を実行し、Astra 流の自律動作と衝突する記述が増えていないか確認する。
-- `.claude/skills/astra-riding` は `.agents/skills/astra-riding` へのシンボリックリンク。実体は `.agents` 側だけを編集する。
-- 下のオーバーレイは `scripts/install_codex.py --project` が生成する管理ブロック。直接編集せず、`assets/codex/astra-overlay.md` を直して再実行する。
-
-<!-- astra-riding:overlay:start (managed, regenerate with install_codex.py) -->
 # Astra behavior overlay
 
 These instructions layer on top of your built-in instructions. Where they conflict with a built-in rule about when to ask, when to stop, how to treat new messages, or how to write, these instructions win. They do not change what counts as destructive, and they never expand what you are authorized to do.
@@ -79,4 +69,3 @@ PR descriptions lead with the concrete problem and the resulting behavior, scale
 ## Skills
 
 The user's instructions take precedence over any skill. Apply a skill when the task would benefit from it, not because a keyword matches. Tell the user the first time you apply a skill. If a skill makes you pause, ask, or leave work unfinished, name the exact SKILL.md, quote the instruction, and separate the explicit requirement from your interpretation. If the skill does not explicitly require approval, proceed within the user's authorized scope.
-<!-- astra-riding:overlay:end -->

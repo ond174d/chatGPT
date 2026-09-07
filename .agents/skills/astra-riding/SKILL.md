@@ -1,6 +1,6 @@
 ---
 name: astra-riding
-description: GPT-6 Astra の判断様式(行動優先・完遂・質問と仮定の仕分け・許可は不可逆操作のみ・変更に見合った検証・要点先出しの報告)を、モデルに依存しない手順として適用する。Codex / Claude Code などのコーディングエージェントで、実装・修正・調査・レビュー・PR 作成などの作業を Astra 流に進めたいとき、ユーザーが $astra-riding や「Astra 流で」「アストラの考え方で」と指定したとき、Astra 自体の設定(config.toml・reasoning effort・AGENTS.md 監査)を整えたいときに使う。Apply GPT-6 Astra style agent behavior (bias to action, persistence, ask-vs-assume triage, approval only for irreversible actions, proportional verification, outcome-first reporting).
+description: GPT-6 Astra の判断様式(行動優先・完遂・質問と仮定の仕分け・許可は不可逆操作のみ・変更に見合った検証・要点先出しの報告)を、モデルに依存しない手順として適用する。Codex / Claude Code などのコーディングエージェントで、実装・修正・調査・レビュー・PR 作成などの作業を Astra 流に進めたいとき、ユーザーが $astra-riding や「Astra 流で」「アストラの考え方で」と指定したとき、Astra 自体の設定(config.toml・reasoning effort・AGENTS.md 監査)を整えたいとき、Astra を使わずに GPT-5.6 Sol / Terra で Astra 並みの振る舞いを引き出す設定(プロファイル・developer_instructions・hooks・検証サブエージェント)を導入したいときに使う。Apply GPT-6 Astra style agent behavior (bias to action, persistence, ask-vs-assume triage, approval only for irreversible actions, proportional verification, outcome-first reporting).
 metadata:
   short-description: Astra 流の判断様式で作業を進める
 ---
@@ -89,6 +89,23 @@ Codex で GPT-6 Astra を使うときの設定、reasoning effort の選び方�
 python3 .agents/skills/astra-riding/scripts/audit_instructions.py .
 ```
 
-## 4. 出典
+## 4. Astra を使わずに Sol / Terra で Astra 並みに動かす
+
+GPT-5.6 Sol / Terra に Astra の判断規則を載せる構成は [references/astra-on-sol-terra.md](references/astra-on-sol-terra.md) を読む。
+4 層(指示オーバーレイ、プロファイル設定、hooks による再注入、検証サブエージェント)で構成し、
+`scripts/install_codex.py` で `.codex/` と AGENTS.md に導入する。
+
+```bash
+python3 .agents/skills/astra-riding/scripts/install_codex.py --project   # または --global
+codex --profile astra-sol                                                # または astra-terra
+```
+
+Sol / Terra で作業するときは、上の判断ループに次の 3 つを必ず足す。
+
+- 見た証拠(差分、コマンド出力、テスト結果)のない主張をしない。確認できなかったことを先に書く。
+- 最終回答の前に、元の依頼と自分の差分を読み直し、抜け・余分・古い検証がないか確認する。ロジック・データ・インフラに触れる変更は `$astra-verifier` に照合させる。
+- 複数のコンテキストウィンドウにまたがる作業は `.codex/astra-notes.md` に目的・制約・決定・検証済み・未完了を書き、圧縮後に読み直す。
+
+## 5. 出典
 
 この手順の根拠となった一次情報・二次情報は [references/sources.md](references/sources.md) にまとめてある。

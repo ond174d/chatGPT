@@ -10,7 +10,8 @@ GPT-6 Astra を Codex で使うときの設定と、旧モデル(GPT-5.6 Sol な
 3. コンテキスト管理(context notes)
 4. 切り替え時に見直す 4 項目
 5. AGENTS.md とスキルの監査
-6. 役割分担の原則
+6. Astra を使わない場合
+7. 役割分担の原則
 
 ## 1. 最小設定
 
@@ -74,7 +75,12 @@ Astra は「常に確認する」「必ず質問してから」「〜しては�
 python3 .agents/skills/astra-riding/scripts/audit_instructions.py .
 ```
 
-## 6. 役割分担の原則
+## 6. Astra を使わない場合
+
+GPT-5.6 Sol / Terra で Astra の振る舞いを再現する構成は [astra-on-sol-terra.md](astra-on-sol-terra.md) にまとめてある。
+`scripts/install_codex.py` がプロファイル(`astra-sol` / `astra-terra`)、hooks、検証サブエージェントを導入する。
+
+## 7. 役割分担の原則
 
 - **AGENTS.md** — リポジトリ全体に常に効く恒久ルール。
 - **スキル(SKILL.md)** — 繰り返す手順の束(リリース前チェック、ログ解析、PR 作成など)。
