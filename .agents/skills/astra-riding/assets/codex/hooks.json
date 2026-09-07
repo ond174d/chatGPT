@@ -5,8 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .codex/hooks/astra_hook.py",
-            "statusMessage": "astra-riding: loading behavior overlay",
+            "command": "python3 .codex/hooks/rulecard_hook.py",
+            "statusMessage": "astra-riding: loading rule card",
             "timeout": 20
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .codex/hooks/astra_hook.py",
+            "command": "python3 .codex/hooks/rulecard_hook.py",
             "statusMessage": "astra-riding: restoring objective after compaction",
             "timeout": 20
           }

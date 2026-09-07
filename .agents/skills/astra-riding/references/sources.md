@@ -18,6 +18,13 @@
 SKILL.md の原則(行動優先、完遂、許可の基準、質問と前提の扱い、検証の比例、文体)は
 主にこの文書の内容を手順として言い換えたもの。
 
+## 汎用化にあたって参照した仕様
+
+- Codex スキルの配置と優先順位(`.agents/skills` / `~/.agents/skills`): https://developers.openai.com/codex/skills
+- Codex hooks のイベントと設定形式: https://developers.openai.com/codex/hooks
+- Codex カスタムサブエージェント(TOML): https://developers.openai.com/codex/subagents
+- Claude Code の hooks・サブエージェント・CLAUDE.md の仕様は同梱ドキュメントに従う。イベント名や対応状況はバージョンで変わるため、導入後に実挙動で確認する。
+
 ## Sol / Terra との比較に使った資料
 
 - Codex 上の GPT-5.6(Sol)システムプロンプト(公開転載): https://github.com/asgeirtj/system_prompts_leaks/blob/main/OpenAI/Codex/gpt-5.6.md

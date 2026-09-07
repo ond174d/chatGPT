@@ -34,15 +34,15 @@ Codex が各モデルに与えている組み込み指示を比較すると、As
 - トークン効率。同じ作業で Sol は Astra の約 3 倍のトークンを使う。並列化・再読の抑制・検証を広げない規則で削るが、差は残る。
 - 推論の深さ。effort を一段上げ、難所だけ Sol の ultra(協調サブエージェント)を使う。
 - 非同期の質問。Astra はハーネス側の非同期質問ツールで「聞きながら進む」。Sol でも同じツールがセッションにあれば使えるので、**あれば使う、なければ最終回答に質問と置いた前提を併記する**と指示する。
-- context notes。Astra 向けの検索可能なノート機能は Sol では使えない前提で、**手動のノートファイル**(`.codex/astra-notes.md`)を圧縮後に再読する運用で代替する。
+- context notes。Astra 向けの検索可能なノート機能は Sol では使えない前提で、**手動のノートファイル**(`.astra-notes.md`)を圧縮後に再読する運用で代替する。
 
 ## 2. 4 層の構成
 
 | 層 | 何をするか | ファイル |
 | --- | --- | --- |
-| 1. 指示 | Astra だけが持つ規則を Sol の組み込み指示の上に重ねる | `assets/codex/astra-overlay.md`(オーバーレイ)、`assets/codex/astra-instructions.md`(全置換版) |
+| 1. 指示 | Astra だけが持つ規則を Sol の組み込み指示の上に重ねる | `assets/overlay.md`(オーバーレイ)、`assets/codex/astra-instructions.md`(全置換版) |
 | 2. 設定 | モデル・effort・developer_instructions をプロファイルにまとめる | `assets/codex/config.toml` |
-| 3. hooks | セッション開始時と圧縮後に規則カードとノートを再注入する | `assets/codex/hooks.json`、`assets/codex/hooks/astra_hook.py` |
+| 3. hooks | セッション開始時と圧縮後に規則カードとノートを再注入する | `assets/codex/hooks.json`、`assets/hooks/rulecard_hook.py` |
 | 4. 検証 | 最終回答前に読み取り専用の検証サブエージェントで主張と差分を照合する | `assets/codex/agents/astra-verifier.toml` |
 
 指示の入れ方は 3 通りあり、優先順位は `model_instructions_file` > AGENTS.md > ユーザーメッセージ。
@@ -55,10 +55,10 @@ Codex が各モデルに与えている組み込み指示を比較すると、As
 
 ```bash
 # このリポジトリ(または任意のプロジェクト)の .codex/ と AGENTS.md に導入
-python3 .agents/skills/astra-riding/scripts/install_codex.py --project
+python3 .agents/skills/astra-riding/scripts/install.py --project --target codex
 
 # 全プロジェクト共通にする場合
-python3 .agents/skills/astra-riding/scripts/install_codex.py --global
+python3 .agents/skills/astra-riding/scripts/install.py --global --target codex
 
 # 起動
 codex --profile astra-sol        # Sol

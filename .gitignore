@@ -1,2 +1,4 @@
 .codex/astra-notes.md
 .codex/*.bak-astra
+.astra-notes.md
+*.bak-astra

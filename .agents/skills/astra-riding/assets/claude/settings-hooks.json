@@ -2,23 +2,22 @@
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .codex/hooks/rulecard_hook.py",
-            "statusMessage": "astra-riding: loading rule card",
+            "command": "python3 .claude/hooks/rulecard_hook.py",
             "timeout": 20
           }
         ]
       }
     ],
-    "PostCompact": [
+    "PreCompact": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .codex/hooks/rulecard_hook.py",
-            "statusMessage": "astra-riding: restoring objective after compaction",
+            "command": "python3 .claude/hooks/rulecard_hook.py",
             "timeout": 20
           }
         ]

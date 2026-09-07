@@ -78,7 +78,7 @@ python3 .agents/skills/astra-riding/scripts/audit_instructions.py .
 ## 6. Astra を使わない場合
 
 GPT-5.6 Sol / Terra で Astra の振る舞いを再現する構成は [astra-on-sol-terra.md](astra-on-sol-terra.md) にまとめてある。
-`scripts/install_codex.py` がプロファイル(`astra-sol` / `astra-terra`)、hooks、検証サブエージェントを導入する。
+`scripts/install.py --target codex` がプロファイル(`astra-sol` / `astra-terra`)、hooks、検証サブエージェントを導入する。
 
 ## 7. 役割分担の原則
 

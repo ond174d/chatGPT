@@ -1,12 +1,3 @@
-# AGENTS.md
-
-このリポジトリは、エージェントの判断様式そのものを配布するスキル置き場。
-
-- 作業は `.agents/skills/astra-riding/SKILL.md` の判断ループに従って進める。
-- スキルを編集したら `python3 .agents/skills/astra-riding/scripts/audit_instructions.py .` を実行し、原則と衝突する記述が増えていないか確認する。
-- `.claude/skills/astra-riding` は `.agents/skills/astra-riding` へのシンボリックリンク。実体は `.agents` 側だけを編集する。
-- 下のオーバーレイは `scripts/install.py` が生成する管理ブロック。直接編集せず、`assets/overlay.md` を直して再実行する。
-
 <!-- astra-riding:overlay:start (managed, regenerate with install.py) -->
 # Operating discipline
 

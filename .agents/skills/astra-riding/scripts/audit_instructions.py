@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""AGENTS.md / CLAUDE.md / SKILL.md から、Astra 流の自律動作と衝突しやすい記述を洗い出す。
+"""エージェントの指示ファイルから、astra-riding の自律動作と衝突しやすい記述を洗い出す。
+
+対象は AGENTS.md / CLAUDE.md / GEMINI.md / SKILL.md / .cursorrules / .cursor/rules/*.mdc /
+.github/copilot-instructions.md など、主要なエージェントが読む指示ファイル。
 
 使い方:
     python3 audit_instructions.py [ROOT ...]
@@ -14,8 +17,18 @@ import os
 import re
 import sys
 
-TARGET_NAMES = {"AGENTS.md", "CLAUDE.md", "SKILL.md", "agents.md", "claude.md"}
-SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "dist", "build", "__pycache__"}
+TARGET_NAMES = {
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    "SKILL.md",
+    "copilot-instructions.md",
+    ".cursorrules",
+    ".windsurfrules",
+    ".clinerules",
+}
+TARGET_SUFFIXES = (".mdc",)  # .cursor/rules/*.mdc
+SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "dist", "build", "__pycache__", ".next", "target", "vendor"}
 
 # 種別 -> 正規表現(日本語・英語)。大文字小文字は区別しない。
 PATTERNS: dict[str, re.Pattern[str]] = {
@@ -44,8 +57,15 @@ def iter_targets(root: str):
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         for name in filenames:
-            if name in TARGET_NAMES:
+            if name in TARGET_NAMES or _matches(name):
                 yield os.path.join(dirpath, name)
+
+
+def _matches(name: str) -> bool:
+    lowered = name.lower()
+    if lowered in {n.lower() for n in TARGET_NAMES}:
+        return True
+    return name.endswith(TARGET_SUFFIXES)
 
 
 MANAGED_BEGIN = "astra-riding:overlay:start"
@@ -53,7 +73,7 @@ MANAGED_END = "astra-riding:overlay:end"
 
 
 def audit_file(path: str) -> list[tuple[int, str, str]]:
-    """管理ブロック(install_codex.py が埋め込むオーバーレイ)は監査対象から外す。"""
+    """管理ブロック(install.py が埋め込むオーバーレイ)は監査対象から外す。"""
     hits: list[tuple[int, str, str]] = []
     in_managed = False
     try:

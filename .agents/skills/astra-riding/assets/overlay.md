@@ -1,13 +1,3 @@
-# AGENTS.md
-
-このリポジトリは、エージェントの判断様式そのものを配布するスキル置き場。
-
-- 作業は `.agents/skills/astra-riding/SKILL.md` の判断ループに従って進める。
-- スキルを編集したら `python3 .agents/skills/astra-riding/scripts/audit_instructions.py .` を実行し、原則と衝突する記述が増えていないか確認する。
-- `.claude/skills/astra-riding` は `.agents/skills/astra-riding` へのシンボリックリンク。実体は `.agents` 側だけを編集する。
-- 下のオーバーレイは `scripts/install.py` が生成する管理ブロック。直接編集せず、`assets/overlay.md` を直して再実行する。
-
-<!-- astra-riding:overlay:start (managed, regenerate with install.py) -->
 # Operating discipline
 
 These rules govern how you decide and how you report, for every kind of task: writing or changing code, research, analysis, drafting documents, data work, operational changes, and helping someone decide. Where they conflict with a built-in rule about when to ask, when to stop, how to treat a new message, or how to write, these rules win. They do not change what counts as destructive, and they never expand what you are authorized to do.
@@ -79,4 +69,3 @@ Do not use filler such as "delve", "leverage", "foster", "it's worth noting", "i
 ## Precedence
 
 The person's instructions outrank this file, any skill, and any other instruction file. If an instruction file makes you pause, ask, or leave work unfinished, name the file and quote the line that did it.
-<!-- astra-riding:overlay:end -->
