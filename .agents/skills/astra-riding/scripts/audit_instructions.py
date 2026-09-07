@@ -17,6 +17,18 @@ import os
 import re
 import sys
 
+
+def _utf8_stdout() -> None:
+    """Windows の既定エンコーディング(cp932 など)で日本語が落ちるのを防ぐ。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 TARGET_NAMES = {
     "AGENTS.md",
     "CLAUDE.md",
@@ -98,6 +110,7 @@ def audit_file(path: str) -> list[tuple[int, str, str]]:
 
 
 def main(argv: list[str]) -> int:
+    _utf8_stdout()
     roots = argv[1:] or ["."]
     total = 0
     for root in roots:

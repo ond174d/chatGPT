@@ -30,6 +30,18 @@ import os
 import shutil
 import sys
 
+
+def _utf8_stdout() -> None:
+    """Windows の既定エンコーディング(cp932 など)で日本語が落ちるのを防ぐ。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(SKILL_DIR, "assets")
 SKILL_NAME = os.path.basename(SKILL_DIR)
@@ -103,12 +115,26 @@ def write_managed_md(path: str, dry: bool) -> None:
     write(path, updated, dry)
 
 
-def hook_command(hooks_dir: str, root: str | None) -> str:
+def python_command(override: str | None = None) -> str:
+    """このマシンで通る Python の呼び出し方。
+
+    Windows では `python3` は PATH に無いか、Microsoft Store を開くだけのスタブのことが
+    多い。ランチャー `py` があればそれを、無ければ `python` を使う。
+    """
+    if override:
+        return override
+    if os.name == "nt":
+        return "py -3" if shutil.which("py") else "python"
+    return "python3"
+
+
+def hook_command(hooks_dir: str, root: str | None, python: str) -> str:
     """プロジェクト導入では相対パスにして、チェックアウト先が変わっても動くようにする。"""
     script = os.path.join(hooks_dir, "rulecard_hook.py")
     if root is not None:
         script = os.path.relpath(script, root)
-    return f"python3 {script}"
+    # 設定ファイルはリポジトリに入るので、区切りは常にスラッシュにする。
+    return f"{python} {script.replace(os.sep, '/')}"
 
 
 def install_hook_files(hooks_dir: str, dry: bool) -> None:
@@ -165,7 +191,7 @@ def install_agents_md(root: str | None, dry: bool) -> None:
     write_managed_md(target, dry)
 
 
-def install_claude(base: str, root: str | None, dry: bool) -> None:
+def install_claude(base: str, root: str | None, dry: bool, python: str) -> None:
     print("[claude]")
     claude_dir = os.path.join(base, ".claude") if root is not None else base
     md_path = os.path.join(root if root is not None else base, "CLAUDE.md")
@@ -174,7 +200,7 @@ def install_claude(base: str, root: str | None, dry: bool) -> None:
     hooks_dir = os.path.join(claude_dir, "hooks")
     install_hook_files(hooks_dir, dry)
     template = json.loads(asset("claude", "settings-hooks.json"))
-    command = hook_command(hooks_dir, root)
+    command = hook_command(hooks_dir, root, python)
     for groups in template["hooks"].values():
         for group in groups:
             for hook in group["hooks"]:
@@ -182,7 +208,7 @@ def install_claude(base: str, root: str | None, dry: bool) -> None:
     merge_json_hooks(os.path.join(claude_dir, "settings.json"), template, dry)
 
 
-def install_codex(base: str, root: str | None, dry: bool) -> None:
+def install_codex(base: str, root: str | None, dry: bool, python: str) -> None:
     print("[codex]")
     codex_dir = os.path.join(base, ".codex") if root is not None else base
     if root is not None:
@@ -194,7 +220,7 @@ def install_codex(base: str, root: str | None, dry: bool) -> None:
     write(os.path.join(codex_dir, "astra-instructions.md"), asset("codex", "astra-instructions.md"), dry)
 
     template = json.loads(asset("codex", "hooks.json"))
-    command = hook_command(hooks_dir, root)
+    command = hook_command(hooks_dir, root, python)
     for groups in template["hooks"].values():
         for group in groups:
             for hook in group["hooks"]:
@@ -262,6 +288,7 @@ def detect(root: str) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
+    _utf8_stdout()
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -273,10 +300,14 @@ def main(argv: list[str]) -> int:
         help="導入先。auto は既存ファイルから判別、all は全部",
     )
     parser.add_argument("--with-skill", action="store_true", help="スキル本体もスキルディレクトリへコピーする")
+    parser.add_argument(
+        "--python", help="hooks に書く Python の呼び出し方(既定: POSIX は python3、Windows は py -3 か python)"
+    )
     parser.add_argument("--dry-run", action="store_true", help="書き込まずに予定を表示")
     args = parser.parse_args(argv[1:])
 
     dry = args.dry_run
+    python = python_command(args.python)
     root = None if args.global_ else os.path.abspath(args.project)
 
     if args.target == "auto":
@@ -285,17 +316,18 @@ def main(argv: list[str]) -> int:
         targets = list(TARGETS)
     else:
         targets = [args.target]
-    print(f"targets: {', '.join(targets)}\n")
+    print(f"targets: {', '.join(targets)}")
+    print(f"python:  {python}\n")
 
     home = os.path.expanduser("~")
     for target in targets:
         if target == "agents-md":
             install_agents_md(root, dry)
         elif target == "claude":
-            install_claude(root if root else os.path.join(home, ".claude"), root, dry)
+            install_claude(root if root else os.path.join(home, ".claude"), root, dry, python)
         elif target == "codex":
             base = root if root else (os.environ.get("CODEX_HOME") or os.path.join(home, ".codex"))
-            install_codex(base, root, dry)
+            install_codex(base, root, dry, python)
 
     if args.with_skill:
         install_skill_copy(root if root else home, root, dry)
@@ -307,7 +339,7 @@ def main(argv: list[str]) -> int:
         print("  codex --profile astra-sol        # または astra-terra / astra-sol-full / astra-terra-full")
     if "claude" in targets:
         print("  claude                           # CLAUDE.md と hooks が次のセッションから効く")
-    print("  python3 %s/scripts/audit_instructions.py ." % SKILL_DIR)
+    print(f"  {python} {SKILL_DIR}/scripts/audit_instructions.py .")
     return 0
 
 

@@ -25,11 +25,27 @@ import os
 import re
 import sys
 
+
+def _utf8_stdout() -> None:
+    """Windows の既定エンコーディング(cp932 など)で日本語が落ちるのを防ぐ。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 LIMITS_PATH = os.path.join(os.path.dirname(HERE), "assets", "limits.json")
 
 # X の重み付け: CJK・かな・全角記号は 2 単位。
-WEIGHTED_2 = re.compile(r"[぀-ゟ゠-ヿ㐀-䶿一-鿿ｦ-ﾟ！-｠、。々〆ー]")
+# ソースを ASCII に保つため \u エスケープで書く(cp932 環境での再保存に強い)。
+WEIGHTED_2 = re.compile(
+    "[\\u3040-\\u309f\\u30a0-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\uff66-\\uff9f"
+    "\\uff01-\\uff60\\u3001\\u3002\\u3005\\u3006\\u30fc]"
+)
 HASHTAG = re.compile(r"[#＃][^\s#＃]+")
 PLATFORM_HEADING = re.compile(r"^##\s*platform\s*[:：]\s*([a-z0-9\-]+)\s*$", re.I | re.M)
 HEDGE = re.compile(r"と思います|かもしれません|ではないでしょうか|気がします|だと思う")
@@ -73,7 +89,7 @@ def check(name: str, text: str, spec: dict, style: dict, hedge_check: bool) -> l
     length = weighted_length(text) if spec.get("weighted") else len(text)
     unit = "単位(日本語は 2 単位)" if spec.get("weighted") else "字"
     status = "超過" if length > limit else "範囲内"
-    print(f"  {spec['label']}: {length} / {limit} {unit} — {status}")
+    print(f"  {spec['label']}: {length} / {limit} {unit} ... {status}")
     if length > limit:
         problems.append(f"{spec['label']}が {length - limit} {unit}超過しています。")
 
@@ -103,6 +119,7 @@ def check(name: str, text: str, spec: dict, style: dict, hedge_check: bool) -> l
 
 
 def main(argv: list[str]) -> int:
+    _utf8_stdout()
     limits = load_limits()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("path", help="点検するファイル。- で標準入力")

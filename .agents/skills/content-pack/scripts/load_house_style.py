@@ -21,6 +21,18 @@ import os
 import re
 import sys
 
+
+def _utf8_stdout() -> None:
+    """Windows の既定エンコーディング(cp932 など)で日本語が落ちるのを防ぐ。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 PROFILE_DIR = os.path.join("00_システム", "00_UserProfile")
 MARKERS = (PROFILE_DIR, "コンテキスト.md", os.path.join(".agent", "skills", "my_writer"))
 
@@ -103,6 +115,7 @@ def collect(root: str) -> dict:
 
 
 def main(argv: list[str]) -> int:
+    _utf8_stdout()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", default=".", help="探索の起点(既定: カレント)")
     parser.add_argument("--json", action="store_true", help="JSON で出力する")

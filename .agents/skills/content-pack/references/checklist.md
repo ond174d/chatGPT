@@ -16,6 +16,9 @@ astra-riding の「確かめる」を台本作成に具体化したもの。渡�
 python3 .agents/skills/content-pack/scripts/script_stats.py 台本.md --target 600
 python3 .agents/skills/content-pack/scripts/copy_check.py 派生物.md --platform auto
 ```
+> Windows では `python3` を `py -3`(ランチャーが無ければ `python`)に読み替える。
+> `install.py` は自動で判定し、`--python` で明示指定もできる。
+
 
 スクリプトが**警告として出す**もの(見つかれば終了コード 1)。
 

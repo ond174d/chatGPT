@@ -40,6 +40,9 @@ python3 .agents/skills/astra-riding/scripts/install.py --global --target all --w
 # 書き込まずに予定だけ見る
 python3 .agents/skills/astra-riding/scripts/install.py --project --dry-run
 ```
+> Windows では `python3` を `py -3`(ランチャーが無ければ `python`)に読み替える。
+> `install.py` は自動で判定し、`--python` で明示指定もできる。
+
 
 自動判別は、`.claude/` か `CLAUDE.md` があれば claude、`.codex/` があれば codex、
 それ以外は agents-md を選ぶ。`--global` では claude と codex の両方に入れる。

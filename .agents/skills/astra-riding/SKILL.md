@@ -106,6 +106,9 @@ python3 .agents/skills/astra-riding/scripts/install.py --global --target all
 # 既存の指示ファイルに、この原則と衝突する記述が残っていないか調べる
 python3 .agents/skills/astra-riding/scripts/audit_instructions.py .
 ```
+> Windows では `python3` を `py -3`(ランチャーが無ければ `python`)に読み替える。
+> `install.py` は自動で判定し、`--python` で明示指定もできる。
+
 
 導入対象は Claude Code(CLAUDE.md、`.claude/agents/`、`.claude/settings.json` の hooks)、
 Codex(`.codex/config.toml` のプロファイル、`hooks.json`、`.codex/agents/`)、

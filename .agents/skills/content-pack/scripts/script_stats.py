@@ -29,10 +29,24 @@ import re
 import sys
 import unicodedata
 
+
+def _utf8_stdout() -> None:
+    """Windows の既定エンコーディング(cp932 など)で日本語が落ちるのを防ぐ。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 # 日本語として 1 文字ずつ数える範囲。算用数字も読み上げに時間がかかるので含める。
+# ひらがな・カタカナ・漢字・半角カナ・全角記号・算用数字。
+# ソースを ASCII に保つため \u エスケープで書く(cp932 環境での再保存に強い)。
 CJK = re.compile(
-    r"[぀-ゟ゠-ヿ㐀-䶿一-鿿ｦ-ﾟ"
-    r"々〆ー！？、。0-9０-９％〜]"
+    "[\\u3040-\\u309f\\u30a0-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\uff66-\\uff9f"
+    "\\u3005\\u3006\\u30fc\\uff01\\uff1f\\u3001\\u30020-9\\uff10-\\uff19\\uff05\\u301c]"
 )
 LATIN_WORD = re.compile(r"[A-Za-z][A-Za-z'’\-]*")
 BRACKET = re.compile(r"\[[^\[\]]*\]")
@@ -182,6 +196,7 @@ def long_sentences(sections: list[Section], limit: int, cpm: float, wpm: float) 
 
 
 def main(argv: list[str]) -> int:
+    _utf8_stdout()
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )

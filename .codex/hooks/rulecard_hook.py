@@ -19,6 +19,18 @@ import json
 import os
 import sys
 
+
+def _utf8_stdout() -> None:
+    """Windows の既定エンコーディング(cp932 など)で日本語が落ちるのを防ぐ。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CARD = os.path.join(HERE, "rulecard.md")
 DEFAULT_NOTES = ".astra-notes.md"
@@ -67,6 +79,7 @@ def is_compaction(payload: dict) -> bool:
 
 
 def main() -> int:
+    _utf8_stdout()
     payload = read_payload()
     card = read_file(os.environ.get("ASTRA_RULECARD", DEFAULT_CARD)) or FALLBACK_CARD
     notes = read_file(os.environ.get("ASTRA_NOTES", DEFAULT_NOTES))

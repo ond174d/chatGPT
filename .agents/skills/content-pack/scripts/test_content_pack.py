@@ -126,12 +126,68 @@ def main() -> int:
 
     test_copy_check()
     test_house_style()
+    test_windows_safety()
 
     if FAILURES:
         print(f"\n{len(FAILURES)} 件失敗: {', '.join(FAILURES)}")
         return 1
     print("\nすべて通過")
     return 0
+
+
+def test_windows_safety() -> None:
+    print("Windows: cp932 の標準出力でも落ちない")
+    body = "## 本編 1 \u2014 見出し\n\n\u2014 を含む本文です。\n"
+    path = write_temp(body)
+    env = dict(os.environ, PYTHONIOENCODING="cp932")
+    try:
+        for name, argv in (
+            ("script_stats", [TARGET, path, "--target", "60"]),
+            ("copy_check", [COPY_CHECK, path, "--platform", "youtube-description"]),
+        ):
+            done = subprocess.run([sys.executable, *argv], capture_output=True, text=True, env=env)
+            check_true(f"{name} が cp932 で例外を出さない", "UnicodeEncodeError" not in done.stderr, done.stderr)
+            check_true(f"{name} が出力を返す", bool(done.stdout.strip()), done.stdout)
+    finally:
+        os.unlink(path)
+
+    print("Windows: スクリプトのソースが cp932 で表現できる")
+    for name in ("script_stats.py", "copy_check.py", "load_house_style.py"):
+        text = open(os.path.join(HERE, name), encoding="utf-8").read()
+        try:
+            text.encode("cp932")
+            ok = True
+        except UnicodeEncodeError:
+            ok = False
+        check_true(f"{name} は cp932 で保存できる", ok)
+
+    print("Windows: install.py のインタプリタ判定")
+    import importlib.util
+
+    install_path = os.path.abspath(
+        os.path.join(HERE, "..", "..", "astra-riding", "scripts", "install.py")
+    )
+    if not os.path.isfile(install_path):
+        print("  skip install.py (見つからない)")
+        return
+    spec = importlib.util.spec_from_file_location("install_under_test", install_path)
+    install = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(install)
+
+    check("POSIX の既定", install.python_command() if os.name != "nt" else "python3", "python3")
+    check("明示指定が勝つ", install.python_command("py -3.12"), "py -3.12")
+
+    real_name, real_which = os.name, install.shutil.which
+    try:
+        os.name = "nt"
+        install.shutil.which = lambda name: "py.exe" if name == "py" else None
+        check("Windows で py があれば py -3", install.python_command(), "py -3")
+        install.shutil.which = lambda name: None
+        check("Windows で py が無ければ python", install.python_command(), "python")
+        command = install.hook_command(os.path.join("/p", ".claude", "hooks"), "/p", "py -3")
+        check("フックのパスはスラッシュ区切り", command, "py -3 .claude/hooks/rulecard_hook.py")
+    finally:
+        os.name, install.shutil.which = real_name, real_which
 
 
 def write_temp(body: str, suffix: str = ".md") -> str:

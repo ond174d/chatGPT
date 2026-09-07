@@ -27,6 +27,9 @@ metadata:
 ```bash
 python3 .agents/skills/content-pack/scripts/load_house_style.py
 ```
+> Windows では `python3` を `py -3`(ランチャーが無ければ `python`)に読み替える。
+> `install.py` は自動で判定し、`--python` で明示指定もできる。
+
 
 既存のプロファイル(文体規定、構成テンプレート、禁止用語、対象読者)が見つかれば、
 **それがこのスキルの一般則より優先する**。文体注入スキルがあれば実行して文体を取得する。
