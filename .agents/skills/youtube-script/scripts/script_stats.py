@@ -6,15 +6,20 @@
     python3 script_stats.py 台本.md --target 600            # 目標 10 分
     python3 script_stats.py 台本.md --target 45 --short     # ショート(フック 2 秒基準)
     python3 script_stats.py 台本.md --cpm 300 --wpm 140     # 話速を話者に合わせる
+    python3 script_stats.py 台本.md --speakers 進行役,ゲスト  # 行頭の話者名を尺から除く
 
 数え方:
-  - `## 見出し` で章に分ける。見出しは尺に含めない。
-  - 角括弧の指示(`[テロップ: ...]` `[B-roll: ...]` `[間]` など)、HTML コメント、
-    コードブロック、引用行、箇条書きの記号、行頭の話者名は尺から除外する。
-  - 日本語は「1 分あたりの文字数」、英語は「1 分あたりの語数」で換算し、合算する。
-    既定は日本語 340 字/分、英語 150 語/分。これは目安であり、話者に合わせて変える。
+  - `## 見出し` で章に分ける。見出し自体は尺に含めない。
+  - 尺から除外するもの: 角括弧の指示(`[テロップ: ...]` `[間]` など)、HTML コメント
+    (複数行も可)、コードブロック、先頭の YAML フロントマター、箇条書きや強調の記号、
+    `--speakers` で指定した行頭の話者名。
+  - 尺に含めるもの: 引用行(`>`)と表の中の文字。読み上げる可能性があるため数える。
+    除きたい場合はコメントか角括弧に入れる。
+  - 日本語(漢字・かな・全角記号)と算用数字は「1 分あたりの文字数」、英単語は
+    「1 分あたりの語数」で換算して合算する。既定は日本語 340 字/分、英語 150 語/分。
+    これは目安であり、話者に合わせて --cpm / --wpm で変える。
 
-問題があれば終了コード 1 を返す。
+問題があれば終了コード 1、ファイルが読めなければ 2 を返す。
 """
 from __future__ import annotations
 
@@ -24,78 +29,109 @@ import re
 import sys
 import unicodedata
 
+# 日本語として 1 文字ずつ数える範囲。算用数字も読み上げに時間がかかるので含める。
 CJK = re.compile(
     r"[぀-ゟ゠-ヿ㐀-䶿一-鿿ｦ-ﾟ"
-    r"々〆ー！？、。]"
+    r"々〆ー！？、。0-9０-９％〜]"
 )
 LATIN_WORD = re.compile(r"[A-Za-z][A-Za-z'’\-]*")
 BRACKET = re.compile(r"\[[^\[\]]*\]")
-HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
-SPEAKER = re.compile(r"^\s*[^\s:：]{1,12}[:：]\s*")
+COMMENT_OPEN = "<!--"
+COMMENT_CLOSE = "-->"
+INLINE_COMMENT = re.compile(r"<!--.*?-->")
 HEADING = re.compile(r"^(#{1,6})\s*(.*)$")
 LIST_MARK = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 SENTENCE_SPLIT = re.compile(r"(?<=[。．.!?！？])\s*")
 HOOK_HINT = re.compile(r"フック|hook|冒頭|つかみ", re.IGNORECASE)
 TODO = re.compile(r"\[要確認\]|\[TODO\]|\[未確認\]", re.IGNORECASE)
+DEFAULT_SPEAKERS = ("進行役", "ゲスト", "司会", "インタビュアー", "ナレーション", "N")
+SPEAKER_SUFFIX = r"\s*[:：]\s*"
+
+
+def speaker_pattern(names: list[str]) -> re.Pattern[str] | None:
+    """行頭の話者名だけを剥がす。`結論:` や URL を誤って削らないよう、名前を限定する。"""
+    names = [name.strip() for name in names if name.strip()]
+    if not names:
+        return None
+    alternatives = "|".join(re.escape(name) for name in names)
+    return re.compile(rf"^\s*(?:{alternatives}|話者[A-Za-z0-9]{{0,3}}|[A-Z]){SPEAKER_SUFFIX}")
 
 
 class Section:
     def __init__(self, title: str) -> None:
         self.title = title
         self.lines: list[str] = []
-        self.raw_lines: list[str] = []
 
     @property
     def text(self) -> str:
         return " ".join(self.lines)
 
-    def seconds(self, cpm: float, wpm: float) -> float:
-        cjk = len(CJK.findall(self.text))
-        words = len(LATIN_WORD.findall(self.text))
-        return cjk / cpm * 60.0 + words / wpm * 60.0
-
     def counts(self) -> tuple[int, int]:
         return len(CJK.findall(self.text)), len(LATIN_WORD.findall(self.text))
 
+    def seconds(self, cpm: float, wpm: float) -> float:
+        cjk, words = self.counts()
+        return cjk / cpm * 60.0 + words / wpm * 60.0
 
-def strip_narration(line: str) -> str | None:
+
+def strip_narration(line: str, speakers: re.Pattern[str] | None) -> str | None:
     """ナレーションとして数える文字列を返す。数えない行は None。"""
     text = BRACKET.sub(" ", line)
-    text = SPEAKER.sub("", text)
+    if speakers is not None:
+        text = speakers.sub("", text, count=1)
     text = LIST_MARK.sub("", text)
     text = re.sub(r"[*_`>|#]", " ", text)
     text = text.strip()
     return text or None
 
 
-def parse(path: str) -> tuple[list[Section], list[tuple[int, str]]]:
+def parse(path: str, speakers: re.Pattern[str] | None) -> tuple[list[Section], list[tuple[int, str]]]:
+    """章の一覧と、(行番号, 原文) の一覧を返す。行番号は元ファイルの番号のまま。"""
     with open(path, encoding="utf-8") as fh:
-        body = fh.read()
-    body = HTML_COMMENT.sub(" ", body)
-    if body.startswith("---\n"):
-        end = body.find("\n---\n", 4)
-        if end != -1:
-            body = body[end + 5 :]
+        lines = fh.read().splitlines()
 
     sections = [Section("(冒頭)")]
     raw: list[tuple[int, str]] = []
     in_fence = False
-    for number, line in enumerate(body.splitlines(), 1):
-        if line.strip().startswith("```"):
+    in_comment = False
+    in_frontmatter = bool(lines) and lines[0].strip() == "---"
+
+    for number, line in enumerate(lines, 1):
+        raw.append((number, line))
+
+        if in_frontmatter:
+            if number > 1 and line.strip() == "---":
+                in_frontmatter = False
+            continue
+
+        text = line
+        if in_comment:
+            if COMMENT_CLOSE in text:
+                text = text.split(COMMENT_CLOSE, 1)[1]
+                in_comment = False
+            else:
+                continue
+        text = INLINE_COMMENT.sub(" ", text)
+        if COMMENT_OPEN in text:
+            text = text.split(COMMENT_OPEN, 1)[0]
+            in_comment = True
+
+        if text.strip().startswith("```"):
             in_fence = not in_fence
             continue
         if in_fence:
             continue
-        heading = HEADING.match(line)
+
+        heading = HEADING.match(text)
         if heading:
             if len(heading.group(1)) == 2:
                 sections.append(Section(heading.group(2).strip() or "(無題)"))
             continue
-        raw.append((number, line))
-        narration = strip_narration(line)
+
+        narration = strip_narration(text, speakers)
         if narration:
             sections[-1].lines.append(narration)
-            sections[-1].raw_lines.append(line)
+
     if len(sections) > 1 and not sections[0].lines:
         sections.pop(0)
     return sections, raw
@@ -107,7 +143,6 @@ def width(text: str) -> int:
 
 
 def pad(text: str, columns: int) -> str:
-    """表示幅で左詰めする。長すぎるものは省略記号で切る。"""
     if width(text) <= columns:
         return text + " " * (columns - width(text))
     out = ""
@@ -119,7 +154,6 @@ def pad(text: str, columns: int) -> str:
 
 
 def rpad(text: str, columns: int) -> str:
-    """表示幅で右詰めする。"""
     return " " * max(0, columns - width(text)) + text
 
 
@@ -128,14 +162,22 @@ def fmt(seconds: float) -> str:
     return f"{total // 60}:{total % 60:02d}"
 
 
-def long_sentences(sections: list[Section], limit: int) -> list[tuple[str, str]]:
+def char_equivalent(text: str, cpm: float, wpm: float) -> int:
+    """英単語を日本語の文字数に換算した長さ。英文だけの文が誤検出されるのを防ぐ。"""
+    cjk = len(CJK.findall(text))
+    words = len(LATIN_WORD.findall(text))
+    return cjk + int(round(words * cpm / wpm))
+
+
+def long_sentences(sections: list[Section], limit: int, cpm: float, wpm: float) -> list[tuple[str, str, int]]:
     found = []
     for section in sections:
         for line in section.lines:
             for sentence in SENTENCE_SPLIT.split(line):
                 stripped = sentence.strip()
-                if len(stripped) > limit:
-                    found.append((section.title, stripped))
+                length = char_equivalent(stripped, cpm, wpm)
+                if length > limit:
+                    found.append((section.title, stripped, length))
     return found
 
 
@@ -150,19 +192,25 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--wpm", type=float, default=150.0, help="英語の話速(語/分、既定 150)")
     parser.add_argument("--hook", type=float, help="フックの上限秒(既定: 長尺 15、--short 指定時 2)")
     parser.add_argument("--short", action="store_true", help="ショート/リールとして判定する")
-    parser.add_argument("--max-sentence", type=int, default=60, help="一文の上限文字数(既定 60)")
+    parser.add_argument("--max-sentence", type=int, default=60, help="一文の上限(日本語換算の文字数、既定 60)")
+    parser.add_argument(
+        "--speakers",
+        default=",".join(DEFAULT_SPEAKERS),
+        help="行頭で剥がす話者名をカンマ区切りで指定(既定: %(default)s)。空文字で無効化",
+    )
     args = parser.parse_args(argv[1:])
 
     if not os.path.isfile(args.path):
         print(f"ファイルが見つかりません: {args.path}", file=sys.stderr)
         return 2
 
-    sections, raw = parse(args.path)
-    if not sections or not any(s.lines for s in sections):
+    speakers = speaker_pattern(args.speakers.split(","))
+    sections, raw = parse(args.path, speakers)
+    if not any(section.lines for section in sections):
         print("ナレーションとして数えられる行がありません。指示や見出しだけになっていないか確認してください。")
         return 1
 
-    total = sum(s.seconds(args.cpm, args.wpm) for s in sections)
+    total = sum(section.seconds(args.cpm, args.wpm) for section in sections)
     print(f"{args.path}\n")
     print(pad("章", 36) + rpad("字", 6) + rpad("語", 6) + rpad("秒", 8) + rpad("割合", 7))
     print("-" * 63)
@@ -193,22 +241,27 @@ def main(argv: list[str]) -> int:
             action = "削る" if delta > 0 else "足す"
             warnings.append(f"尺が目標から外れています。日本語で約 {need:.0f} 字 {action}必要です。")
 
-    hook_limit = args.hook if args.hook is not None else (2.0 if args.short else 15.0)
-    hook = next((s for s in sections if HOOK_HINT.search(s.title)), sections[0])
-    hook_seconds = hook.seconds(args.cpm, args.wpm)
-    if hook_seconds > hook_limit:
-        warnings.append(
-            f"フック(「{hook.title}」)が {fmt(hook_seconds)} で上限 {hook_limit:g} 秒を超えています。"
-        )
+    titled = [s for s in sections if s.title != "(冒頭)"]
+    if not titled:
+        warnings.append("`## 見出し` がないため章に分けられません。章ごとの配分とフックの判定ができません。")
+    else:
+        hook_limit = args.hook if args.hook is not None else (2.0 if args.short else 15.0)
+        hook = next((s for s in titled if HOOK_HINT.search(s.title)), titled[0])
+        hook_seconds = hook.seconds(args.cpm, args.wpm)
+        if hook_seconds > hook_limit:
+            warnings.append(
+                f"フック(「{hook.title}」)が {fmt(hook_seconds)} で上限 {hook_limit:g} 秒を超えています。"
+            )
 
-    for title, sentence in long_sentences(sections, args.max_sentence):
+    for title, sentence, length in long_sentences(sections, args.max_sentence, args.cpm, args.wpm):
         preview = sentence if len(sentence) <= 46 else sentence[:45] + "…"
-        warnings.append(f"一文が {len(sentence)} 字(上限 {args.max_sentence}): [{title}] {preview}")
+        warnings.append(f"一文が {length} 字相当(上限 {args.max_sentence}): [{title}] {preview}")
 
-    todos = [(number, line.strip()) for number, line in raw if TODO.search(line)]
-    for number, line in todos:
-        preview = line if len(line) <= 60 else line[:59] + "…"
-        warnings.append(f"未確認の箇所が残っています(行 {number}): {preview}")
+    for number, line in raw:
+        if TODO.search(line):
+            stripped = line.strip()
+            preview = stripped if len(stripped) <= 60 else stripped[:59] + "…"
+            warnings.append(f"未確認の箇所が残っています(行 {number}): {preview}")
 
     if warnings:
         print("\n要対応:")
@@ -220,4 +273,9 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    try:
+        sys.exit(main(sys.argv))
+    except BrokenPipeError:
+        # `| head` などで途中終了したとき。エラーを出さずに終える。
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        sys.exit(0)

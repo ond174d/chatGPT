@@ -9,7 +9,7 @@
 
 ---
 
-# astra-riding
+## astra-riding
 
 エージェントの**判断様式そのもの**を配布するスキル。何を作るかではなく、どう判断して進めるかを規定する。
 GPT-6 Astra が Codex 上で見せる振る舞い(公開されている組み込み指示から抽出)を出発点に、
@@ -18,7 +18,7 @@ GPT-6 Astra が Codex 上で見せる振る舞い(公開されている組み込
 コードの実装・デバッグ・レビューだけでなく、調査、分析、文章作成、資料作成、データ処理、
 運用作業、意思決定の支援にそのまま使える。
 
-## 何が変わるか
+### 何が変わるか
 
 - 「できますか」で止まらず、依頼として実行し、最後まで仕上げる。
 - 結果を左右する問いだけを聞き、待つ間も手を止めない。推測できる細部は自分で決め、前提として伝える。
@@ -26,7 +26,7 @@ GPT-6 Astra が Codex 上で見せる振る舞い(公開されている組み込
 - このセッションで実際に見たものだけを事実として述べ、確認できなかったことを先に言う。
 - 検証は影響に比例させる。報告は結論から。
 
-## 構成
+### 構成
 
 ```
 .agents/skills/astra-riding/
@@ -51,9 +51,9 @@ GPT-6 Astra が Codex 上で見せる振る舞い(公開されている組み込
     └── audit_instructions.py      # 原則と衝突する記述の洗い出し
 ```
 
-## 使い方
+### 使い方
 
-### スキルとして呼ぶ
+#### スキルとして呼ぶ
 
 Claude Code なら `/astra-riding`、Codex なら `$astra-riding`。「Astra 流で」「最後までやって」でも作動する。
 このリポジトリでは `.claude/skills/astra-riding` と `.agents/skills/astra-riding` の両方から読める。
@@ -65,7 +65,7 @@ cp -rL .agents/skills/astra-riding ~/.claude/skills/    # Claude Code
 cp -r  .agents/skills/astra-riding ~/.agents/skills/    # Codex ほか
 ```
 
-### 常時適用する(推奨)
+#### 常時適用する(推奨)
 
 指示ファイル・hooks・検証サブエージェントとして環境に埋め込む。使っているエージェントは自動判別される。
 
@@ -79,7 +79,7 @@ python3 .agents/skills/astra-riding/scripts/install.py --project --dry-run    # 
 すべて管理ブロック方式で、再実行すれば中身だけ更新され、手書き部分は残る。既存ファイルはバックアップを取る。
 詳細は `references/harness-setup.md`。
 
-### 指示ファイルの監査
+#### 指示ファイルの監査
 
 ```bash
 python3 .agents/skills/astra-riding/scripts/audit_instructions.py .
@@ -89,7 +89,7 @@ AGENTS.md / CLAUDE.md / GEMINI.md / SKILL.md / `.cursorrules` / `.cursor/rules/*
 `.github/copilot-instructions.md` を走査し、「常に確認する」「決して〜しない」型の記述を一覧にする。
 自律動作を止めやすい古い指示を見つけるためのもの。
 
-### Astra を使わずに Sol / Terra で動かす
+#### Astra を使わずに Sol / Terra で動かす
 
 ```bash
 python3 .agents/skills/astra-riding/scripts/install.py --project --target codex
@@ -101,7 +101,7 @@ Astra だけが持つ判断規則を Sol / Terra の組み込み指示の上に�
 
 ---
 
-# youtube-script
+## youtube-script
 
 YouTube 動画の台本を、構成案ではなく**読み上げられる完成原稿**として書くスキル。
 進め方は astra-riding の判断ループをそのまま使う。台本作成で効くのは次の 4 点。
@@ -111,7 +111,7 @@ YouTube 動画の台本を、構成案ではなく**読み上げられる完成�
 - 台本に書く数字・日付・価格・統計は、確認できたものだけを断定形で書く。確認できないものは `[要確認]` を付けて収録前に潰す。それらしい数字を作らない。
 - 納品前に尺と事実と読みやすさを機械と目の両方で確認する。
 
-## 構成
+### 構成
 
 ```
 .agents/skills/youtube-script/
@@ -126,10 +126,12 @@ YouTube 動画の台本を、構成案ではなく**読み上げられる完成�
 │   ├── template-long.md          # 長尺テンプレート
 │   ├── template-short.md         # ショート/リールテンプレート
 │   └── template-interview.md     # 対談の進行台本テンプレート
-└── scripts/script_stats.py       # 尺の見積り、章ごとの配分、長文と未確認箇所の検出
+└── scripts/
+    ├── script_stats.py           # 尺の見積り、章ごとの配分、長文と未確認箇所の検出
+    └── test_script_stats.py      # script_stats.py の回帰テスト
 ```
 
-## 使い方
+### 使い方
 
 Claude Code なら `/youtube-script`、Codex なら `$youtube-script`。「台本を作って」でも作動する。
 
@@ -144,6 +146,11 @@ python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target
 python3 .agents/skills/youtube-script/scripts/script_stats.py 台本.md --target 600 --cpm 300
 ```
 
-角括弧の画面指示、コメント、見出しは尺の計算から除外される。
-目標尺との差、フックの長さ、60 字を超える一文、`[要確認]` の残りを検出し、
-問題があれば終了コード 1 を返す。
+角括弧の画面指示、HTML コメント、コードブロック、フロントマターは尺の計算から除外される。
+引用行と表の中の文字は読み上げる可能性があるので算入する。対談台本は `--speakers 進行役,ゲスト` で
+行頭の話者名を除ける。目標尺との差、フックの長さ、60 字相当を超える一文(英語は語数で換算)、
+`[要確認]` の残り、見出しの欠落を検出し、問題があれば終了コード 1 を返す。
+
+```bash
+python3 .agents/skills/youtube-script/scripts/test_script_stats.py   # 回帰テスト
+```
