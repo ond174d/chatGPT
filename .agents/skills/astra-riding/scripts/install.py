@@ -54,7 +54,8 @@ MD_END = "<!-- astra-riding:overlay:end -->"
 NOTES_FILE = ".astra-notes.md"
 GITIGNORE_ENTRIES = (NOTES_FILE, "*.bak-astra")
 
-TARGETS = ("claude", "codex", "agents-md")
+TARGETS = ("claude", "codex", "agents-md", "skill")
+SKILLS_ROOT = os.path.dirname(SKILL_DIR)
 
 
 # --- file helpers -----------------------------------------------------------
@@ -241,27 +242,48 @@ def install_codex(base: str, root: str | None, dry: bool, python: str) -> None:
     write(config_path, replace_block(existing, config_block, TOML_BEGIN, TOML_END), dry)
 
 
-def install_skill_copy(base: str, root: str | None, dry: bool) -> None:
+def skill_sources(which: str) -> list[str]:
+    """コピー元のスキルディレクトリ。self はこのスキルだけ、all は隣接するスキルすべて。"""
+    if which == "self":
+        return [SKILL_DIR]
+    names = sorted(
+        name for name in os.listdir(SKILLS_ROOT)
+        if os.path.isfile(os.path.join(SKILLS_ROOT, name, "SKILL.md"))
+    )
+    return [os.path.join(SKILLS_ROOT, name) for name in names]
+
+
+def skill_destinations(base: str, root: str | None, override: str | None) -> list[str]:
+    """コピー先のスキルディレクトリ。保管庫の `.agent/skills` があればそこも対象にする。"""
+    if override:
+        return [os.path.abspath(override)]
+    anchor = root if root is not None else os.path.expanduser("~")
+    dests = [os.path.join(anchor, ".claude", "skills"), os.path.join(anchor, ".agents", "skills")]
+    vault = os.path.join(anchor, ".agent", "skills")
+    if os.path.isdir(vault):
+        dests.append(vault)
+    return dests
+
+
+def install_skill_copy(base: str, root: str | None, dry: bool, which: str, override: str | None) -> None:
     """スキル本体を、そのエージェントが読むスキルディレクトリに置く。"""
     print("[skill]")
-    if root is not None:
-        dests = [os.path.join(root, ".claude", "skills", SKILL_NAME), os.path.join(root, ".agents", "skills", SKILL_NAME)]
-    else:
-        home = os.path.expanduser("~")
-        dests = [os.path.join(home, ".claude", "skills", SKILL_NAME), os.path.join(home, ".agents", "skills", SKILL_NAME)]
-    for dest in dests:
-        if os.path.realpath(dest) == os.path.realpath(SKILL_DIR):
-            print(f"  skip {dest} (元の場所)")
-            continue
-        print(f"  copy  {dest}")
-        if dry:
-            continue
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        if os.path.islink(dest):
-            os.unlink(dest)
-        elif os.path.isdir(dest):
-            shutil.rmtree(dest)
-        shutil.copytree(SKILL_DIR, dest, symlinks=False)
+    sources = skill_sources(which)
+    for parent in skill_destinations(base, root, override):
+        for source in sources:
+            dest = os.path.join(parent, os.path.basename(source))
+            if os.path.realpath(dest) == os.path.realpath(source):
+                print(f"  skip {dest} (元の場所)")
+                continue
+            print(f"  copy  {dest}")
+            if dry:
+                continue
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            if os.path.islink(dest):
+                os.unlink(dest)
+            elif os.path.isdir(dest):
+                shutil.rmtree(dest)
+            shutil.copytree(source, dest, symlinks=False, ignore=shutil.ignore_patterns("__pycache__"))
 
 
 def update_gitignore(root: str, dry: bool) -> None:
@@ -301,6 +323,11 @@ def main(argv: list[str]) -> int:
     )
     parser.add_argument("--with-skill", action="store_true", help="スキル本体もスキルディレクトリへコピーする")
     parser.add_argument(
+        "--skills", default="self", choices=("self", "all"),
+        help="コピーするスキル。self はこのスキルだけ、all は隣接するスキルすべて(既定: self)",
+    )
+    parser.add_argument("--skills-dir", help="コピー先のスキルディレクトリを明示する(例: 保管庫の .agent/skills)")
+    parser.add_argument(
         "--python", help="hooks に書く Python の呼び出し方(既定: POSIX は python3、Windows は py -3 か python)"
     )
     parser.add_argument("--dry-run", action="store_true", help="書き込まずに予定を表示")
@@ -321,6 +348,8 @@ def main(argv: list[str]) -> int:
 
     home = os.path.expanduser("~")
     for target in targets:
+        if target == "skill":
+            continue
         if target == "agents-md":
             install_agents_md(root, dry)
         elif target == "claude":
@@ -329,12 +358,15 @@ def main(argv: list[str]) -> int:
             base = root if root else (os.environ.get("CODEX_HOME") or os.path.join(home, ".codex"))
             install_codex(base, root, dry, python)
 
-    if args.with_skill:
-        install_skill_copy(root if root else home, root, dry)
-    if root:
+    if args.with_skill or "skill" in targets:
+        install_skill_copy(root if root else home, root, dry, args.skills, args.skills_dir)
+    # ノートとバックアップは hooks / 設定を入れたときだけ生まれる。
+    if root and any(t in targets for t in ("claude", "codex", "agents-md")):
         update_gitignore(root, dry)
 
     print("\n次の一手:")
+    if targets == ["skill"]:
+        print("  スキルとして呼び出す: /astra-riding /content-pack (Codex は $)")
     if "codex" in targets:
         print("  codex --profile astra-sol        # または astra-terra / astra-sol-full / astra-terra-full")
     if "claude" in targets:

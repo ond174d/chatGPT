@@ -47,6 +47,17 @@ python3 .agents/skills/astra-riding/scripts/install.py --project --dry-run
 自動判別は、`.claude/` か `CLAUDE.md` があれば claude、`.codex/` があれば codex、
 それ以外は agents-md を選ぶ。`--global` では claude と codex の両方に入れる。
 
+`--target skill` はスキル本体のコピーだけを行い、指示ファイルや hooks には触れない。
+既に独自の運用ルールを持つ保管庫やリポジトリに、スキルだけを足したいときに使う。
+`--skills all` で隣接するスキルをまとめて、`--skills-dir` でコピー先を明示できる。
+コピー先を省略しても、`<root>/.agent/skills` があれば自動的に対象に加わる。
+
+```bash
+python3 .agents/skills/astra-riding/scripts/install.py \
+  --project /path/to/vault --target skill --skills all \
+  --skills-dir /path/to/vault/.agent/skills
+```
+
 `--global --target agents-md` は、Codex がユーザー全体の指示として読む `~/.codex/AGENTS.md` に書く。
 ホーム直下の `AGENTS.md` を読むエージェントは一般的ではないため、そこには書かない。
 

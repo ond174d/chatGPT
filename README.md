@@ -196,8 +196,14 @@ python3 .agents/skills/content-pack/scripts/test_content_pack.py
 その `.agent/skills/` にコピーし、保管庫のルートで実行する。
 
 ```bash
-cp -r .agents/skills/content-pack /path/to/vault/.agent/skills/
+python3 .agents/skills/astra-riding/scripts/install.py \
+  --project /path/to/vault --target skill --skills all \
+  --skills-dir /path/to/vault/.agent/skills
+
 cd /path/to/vault && python3 .agent/skills/content-pack/scripts/load_house_style.py
 ```
+
+`--target skill` はスキルのコピーだけを行い、既存の指示ファイルや hooks には触れない。
+独自の運用ルールを持つ保管庫に、そのルールを壊さずスキルだけを足せる。
 
 プロファイルが自動検出され、文体・構成テンプレート・禁止用語がそこから読み込まれる。
